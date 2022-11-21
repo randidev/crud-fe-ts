@@ -12,7 +12,7 @@ import { IProductList, IProduct } from "../type/product";
 import { currencyFormat } from "../utils/helpers";
 import { useAppDispatch, useAppSelector } from "../hooks/redux";
 import { replace } from "../features/products";
-import { confirmationConfig } from "../config/config/swal";
+import { confirmationConfig } from "../config/lib/swal";
 
 import Table from "../components/table";
 import Card from "../components/card";

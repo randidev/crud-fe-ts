@@ -1,36 +1,106 @@
 import {
-  SortingState,
   useReactTable,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   flexRender,
+  FilterFn,
 } from "@tanstack/react-table";
-import { useState } from "react";
+
+import {
+  RankingInfo,
+  rankItem,
+  compareItems,
+} from "@tanstack/match-sorter-utils";
+
+import { useEffect, useState } from "react";
 
 import { CgChevronLeft, CgChevronRight } from "react-icons/cg";
 
 import { Props } from "./type";
 
+declare module "@tanstack/table-core" {
+  interface FilterFns {
+    fuzzy: FilterFn<unknown>;
+  }
+  interface FilterMeta {
+    itemRank: RankingInfo;
+  }
+}
+
+const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
+  // Rank the item
+  const itemRank = rankItem(row.getValue(columnId), value);
+
+  // Store the itemRank info
+  addMeta({
+    itemRank,
+  });
+
+  // Return if the item should be filtered in/out
+  return itemRank.passed;
+};
+
+function DebouncedInput({
+  value: initialValue,
+  onChange,
+  debounce = 500,
+  ...props
+}: {
+  value: string | number;
+  onChange: (value: string | number) => void;
+  debounce?: number;
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange">) {
+  const [value, setValue] = useState(initialValue);
+
+  useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      onChange(value);
+    }, debounce);
+
+    return () => clearTimeout(timeout);
+  }, [value]);
+
+  return (
+    <input
+      {...props}
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+    />
+  );
+}
+
 export const Table = <T extends unknown>({ data, columns }: Props<T>) => {
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState("");
 
   const table = useReactTable({
     data,
     columns,
-    // Pipeline
-    state: {
-      sorting,
+    filterFns: {
+      fuzzy: fuzzyFilter,
     },
-    onSortingChange: setSorting,
+    state: {
+      globalFilter,
+    },
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: fuzzyFilter,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    //
     debugTable: true,
   });
   return (
     <>
+      <DebouncedInput
+        value={globalFilter ?? ""}
+        onChange={(value) => setGlobalFilter(String(value))}
+        className="font-lg border-block w-full rounded-sm border p-2 shadow sm:w-52"
+        placeholder="Search..."
+      />
       <div className="flex flex-col">
         <div className="overflow-x-auto ">
           <div className="inline-block min-w-full py-2">
@@ -41,12 +111,7 @@ export const Table = <T extends unknown>({ data, columns }: Props<T>) => {
                     <tr key={headerGroup.id}>
                       {headerGroup.headers.map((header) => {
                         return (
-                          <th
-                            key={header.id}
-                            colSpan={header.colSpan}
-                            {...{
-                              onClick: header.column.getToggleSortingHandler(),
-                            }}>
+                          <th key={header.id} colSpan={header.colSpan}>
                             <div className="header">
                               {header.isPlaceholder ? null : (
                                 <div>
@@ -56,10 +121,6 @@ export const Table = <T extends unknown>({ data, columns }: Props<T>) => {
                                   )}
                                 </div>
                               )}
-                              {{
-                                asc: " 🔼",
-                                desc: " 🔽",
-                              }[header.column.getIsSorted() as string] ?? " "}
                             </div>
                           </th>
                         );
@@ -68,22 +129,25 @@ export const Table = <T extends unknown>({ data, columns }: Props<T>) => {
                   ))}
                 </thead>
                 <tbody>
-                  {table.getRowModel().rows.map((row) => {
-                    return (
-                      <tr key={row.id}>
-                        {row.getVisibleCells().map((cell) => {
-                          return (
-                            <td key={cell.id}>
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext()
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
+                  {table
+                    .getRowModel()
+                    .rows.slice(0, 10)
+                    .map((row) => {
+                      return (
+                        <tr key={row.id}>
+                          {row.getVisibleCells().map((cell) => {
+                            return (
+                              <td key={cell.id}>
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext()
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
               <div className="h-2" />
