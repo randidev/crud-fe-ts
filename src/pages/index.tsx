@@ -2,8 +2,7 @@ import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { CgTrashEmpty } from "react-icons/cg";
-import { BsPencilSquare } from "react-icons/bs";
-import { AiOutlineCloudSync } from "react-icons/ai";
+import { AiOutlineCloudSync, AiOutlineEye } from "react-icons/ai";
 import { HiPlus } from "react-icons/hi";
 import moment from "moment";
 import Swal from "sweetalert2";
@@ -24,6 +23,7 @@ import Button from "../components/button";
 export default function Home() {
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const { addProductCallback = false } = router.query;
 
   const productState = useAppSelector((state) => state.products);
 
@@ -92,7 +92,7 @@ export default function Home() {
               <button
                 type="button"
                 className="inline-block rounded-l bg-blue-600 px-6 py-2.5 text-xs font-medium uppercase leading-tight text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:bg-blue-700 focus:outline-none focus:ring-0 active:bg-blue-800">
-                <BsPencilSquare size={15} />
+                <AiOutlineEye size={15} />
               </button>
               <button
                 onClick={() => handleDeletePopup(_id, name)}
@@ -128,7 +128,7 @@ export default function Home() {
   const fetching = async (isReplacing: boolean = false) => {
     setLoading(true);
 
-    if (products.length > 0 && !isReplacing) {
+    if (!addProductCallback && products.length > 0 && !isReplacing) {
       setLoading(false);
       return;
     }
@@ -137,6 +137,8 @@ export default function Home() {
 
     setProducts(fetchingNewData.data);
     dispatch(replace(fetchingNewData.data));
+
+    if (addProductCallback) router.push("/");
 
     setLoading(false);
   };

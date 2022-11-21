@@ -1,10 +1,16 @@
+import axios from "axios";
 import { GetStaticProps, NextPage } from "next";
 import { useEffect, useState } from "react";
-import Breadcrumbs from "../../../components/breadcrumbs";
-import Card from "../../../components/card";
+import toast from "react-hot-toast";
+
 import { getCategories } from "../../../services/categories";
 import { ICategoryList } from "../../../type/category";
 import { IFormValue } from "./type";
+
+import Breadcrumbs from "../../../components/breadcrumbs";
+import Card from "../../../components/card";
+import Swal from "sweetalert2";
+import { useRouter } from "next/router";
 
 const breadcrumbsConfig = {
   links: [
@@ -17,6 +23,7 @@ const breadcrumbsConfig = {
 export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
   categories,
 }) => {
+  const router = useRouter();
   const [previewImage, setPreviewImage] = useState<string>("");
   const [formValue, setFormValue] = useState<IFormValue>({
     name: "",
@@ -32,7 +39,33 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
     harga: 0,
   });
 
-  const generatingPreview = () => {
+  const handleSubmit = async () => {
+    const body = new FormData();
+    body.set("image", formValue.image[0]);
+    const uploadImage = await axios.post("/api/product/upload-image", body);
+
+    if (uploadImage.status === 200) {
+      const dataToPost = { ...formValue };
+      dataToPost.image = dataToPost.image[0].name;
+
+      const uploading = await axios.post(
+        "/api/product/add-product",
+        dataToPost
+      );
+
+      if (uploading.status === 200) {
+        toast.success("Successfully add new product.", {
+          position: "bottom-center",
+        });
+
+        setTimeout(() => {
+          router.push("/?addProductCallback=true");
+        }, 1000);
+      }
+    }
+  };
+
+  const handlePreview = () => {
     const [file] = formValue.image;
     if (file) {
       setPreviewImage(URL.createObjectURL(file));
@@ -41,7 +74,7 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
 
   useEffect(() => {
     if (formValue.image.length > 0) {
-      generatingPreview();
+      handlePreview();
     }
   }, [formValue.image]);
 
@@ -50,7 +83,14 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
       <Breadcrumbs {...breadcrumbsConfig} />
 
       <Card className="mx-auto lg:w-2/4">
-        <form action="#" method="POST">
+        <form
+          action="#"
+          method="POST"
+          encType="multipart/form-data"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}>
           <div className="overflow-hidden shadow sm:rounded-md">
             <div className="bg-white px-4 py-5 sm:p-6">
               <div className="grid grid-cols-6 gap-6">
@@ -152,6 +192,7 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
                   </label>
                   <input
                     type="number"
+                    min="0"
                     name="price"
                     id="price"
                     autoComplete="given-name"
@@ -172,6 +213,7 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
                   </label>
                   <input
                     type="number"
+                    min="0"
                     name="weight"
                     id="weight"
                     autoComplete="address-level2"
@@ -192,6 +234,7 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
                   </label>
                   <input
                     type="number"
+                    min="0"
                     name="width"
                     id="width"
                     autoComplete="address-level1"
@@ -212,6 +255,7 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
                   </label>
                   <input
                     type="number"
+                    min="0"
                     name="length"
                     id="length"
                     autoComplete="length"
@@ -232,6 +276,7 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
                   </label>
                   <input
                     type="number"
+                    min="0"
                     name="height"
                     id="height"
                     autoComplete="height"
