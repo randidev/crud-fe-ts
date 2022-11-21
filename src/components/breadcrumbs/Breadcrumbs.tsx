@@ -16,7 +16,7 @@ export const Breadcrumbs: FC<Props> = ({ links, activeIndex }) => {
                     index === activeIndex
                       ? "text-gray-900 hover:text-gray-800"
                       : "text-blue-600 hover:text-blue-700",
-                    "text-lg font-semibold",
+                    "text-lg font-semibold capitalize",
                   ].join(" ")}>
                   {link.label}
                 </Link>

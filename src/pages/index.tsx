@@ -23,12 +23,12 @@ import Button from "../components/button";
 export default function Home() {
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const { addProductCallback = false } = router.query;
+  const { callbackFromAddProduct = false } = router.query;
 
-  const productState = useAppSelector((state) => state.products);
+  const cachedProduct = useAppSelector((state) => state.products);
 
   const [loading, setLoading] = useState(true);
-  const [products, setProducts] = useState<IProductList>(productState.data);
+  const [products, setProducts] = useState<IProductList>(cachedProduct.data);
   const columns = useMemo<ColumnDef<IProduct>[]>(
     () => [
       {
@@ -90,6 +90,7 @@ export default function Home() {
               className="inline-flex shadow-md hover:shadow-lg focus:shadow-lg"
               role="group">
               <button
+                onClick={() => router.push(`/product/detail/${_id}`)}
                 type="button"
                 className="inline-block rounded-l bg-blue-600 px-6 py-2.5 text-xs font-medium uppercase leading-tight text-white transition duration-150 ease-in-out hover:bg-blue-700 focus:bg-blue-700 focus:outline-none focus:ring-0 active:bg-blue-800">
                 <AiOutlineEye size={15} />
@@ -113,22 +114,26 @@ export default function Home() {
       ...confirmationConfig,
       title: `<span style="font-weight: normal">Are you sure want to delete</span><br/>${name} ?`,
     }).then(async (result) => {
-      if (result.isConfirmed) {
-        const deleting = await deleteProduct(id);
-        if (deleting.status === 200) {
-          Swal.fire(`${name} successfully deleted.`, "", "success");
-          fetching(true);
-        } else {
-          Swal.fire(`Deleting ${name} failed.`, "", "error");
-        }
-      }
+      if (!result.isConfirmed) return;
+
+      const deleting = await deleteProduct(id);
+
+      if (deleting.status !== 200)
+        Swal.fire(`Deleting ${name} failed.`, "", "error");
+
+      Swal.fire(`${name} successfully deleted.`, "", "success");
+      fetching(true);
     });
   };
 
   const fetching = async (isReplacing: boolean = false) => {
     setLoading(true);
 
-    if (!addProductCallback && products.length > 0 && !isReplacing) {
+    // if the product list already cached
+    // and there's no callback params from adding a product
+    // and this function not trigger by deleting or refreshing the list
+    // then no need to hit the API again
+    if (!callbackFromAddProduct && products.length > 0 && !isReplacing) {
       setLoading(false);
       return;
     }
@@ -138,14 +143,18 @@ export default function Home() {
     setProducts(fetchingNewData.data);
     dispatch(replace(fetchingNewData.data));
 
-    if (addProductCallback) router.push("/");
+    // if there's a callback params from adding a product
+    // then refresh the page and remove the params
+    if (callbackFromAddProduct) router.replace("/");
 
     setLoading(false);
   };
 
   useEffect(() => {
+    // whenever cached product changed
+    // then trigger fetching function
     fetching();
-  }, [productState]);
+  }, [cachedProduct]);
 
   return (
     <div>
@@ -186,7 +195,7 @@ export default function Home() {
             <Table<IProduct> data={products} columns={columns} />
           </Card>
           <div className="mt-2 text-sm font-light  text-gray-600">
-            Last updated {moment(productState.lastUpdated).fromNow()}
+            Last updated {moment(cachedProduct.lastUpdated).fromNow()}
           </div>
         </>
       )}

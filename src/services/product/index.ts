@@ -8,6 +8,13 @@ export const getProducts = async () => {
   });
 };
 
+export const getDetailProduct = async (id: string) => {
+  return await serviceInstance({
+    url: `/products/${id}`,
+    method: "GET",
+  });
+};
+
 export const deleteProduct = async (id: string) => {
   return await serviceInstance({
     url: `/products/${id}`,

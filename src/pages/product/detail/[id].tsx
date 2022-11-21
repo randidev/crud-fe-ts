@@ -1,89 +1,29 @@
-import axios from "axios";
-import { useRouter } from "next/router";
-import { GetStaticProps, NextPage } from "next";
-import { useEffect, useState } from "react";
-import toast from "react-hot-toast";
-
-import { getCategories } from "../../../services/categories";
-import { ICategoryList } from "../../../type/category";
-import { IFormValue } from "./type";
+import { GetServerSideProps, NextPage } from "next";
+import Head from "next/head";
 
 import Breadcrumbs from "../../../components/breadcrumbs";
+import { getDetailProduct } from "../../../services/product";
+import { IProduct } from "../../../type/product";
 
-const breadcrumbsConfig = {
-  links: [
-    { label: "Products", href: "/" },
-    { label: "Add New", href: "/product/add" },
-  ],
-  activeIndex: 1,
-};
-
-export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
-  categories,
+export const ProductFormDetail: NextPage<{ detail: IProduct }> = ({
+  detail,
 }) => {
-  const router = useRouter();
-  const [previewImage, setPreviewImage] = useState<string>("");
-  const [formValue, setFormValue] = useState<IFormValue>({
-    name: "",
-    sku: "",
-    CategoryId: 0,
-    categoryName: "",
-    description: "",
-    weight: 0,
-    width: 0,
-    length: 0,
-    height: 0,
-    image: [],
-    harga: 0,
-  });
-
-  const handleSubmit = async () => {
-    // upload the image first
-    const body = new FormData();
-    body.set("image", formValue.image[0]);
-    const uploadImage = await axios.post("/api/product/upload-image", body);
-
-    if (uploadImage.status !== 200)
-      toast.error("Failed when uploading image.", {
-        position: "bottom-center",
-      });
-
-    const dataToPost = { ...formValue };
-    dataToPost.image = dataToPost.image[0].name;
-
-    const uploading = await axios.post("/api/product/add-product", dataToPost);
-
-    if (uploading.status !== 200)
-      toast.error("Failed when adding new product.", {
-        position: "bottom-center",
-      });
-
-    toast.success("Successfully add new product.", {
-      position: "bottom-center",
-    });
-
-    // if add product success, then redirect to product list with the callback params
-    // to indicates that we need to hit API again to refresh the product
-    setTimeout(() => {
-      router.push("/?callbackFromAddProduct=true");
-    }, 1000);
+  const breadcrumbsConfig = {
+    links: [
+      { label: "Products", href: "/" },
+      { label: "Detail", href: `/product/detail/${detail._id}` },
+      { label: detail.name, href: `/product/detail/${detail._id}` },
+    ],
+    activeIndex: 2,
   };
-
-  const handlePreview = () => {
-    const [file] = formValue.image;
-    if (file) {
-      setPreviewImage(URL.createObjectURL(file));
-    }
-  };
-
-  useEffect(() => {
-    if (formValue.image.length > 0) {
-      handlePreview();
-    }
-  }, [formValue.image]);
 
   return (
     <>
+      <Head>
+        <title>Randi | {detail.name}</title>
+        <meta name="description" content={detail.description} />
+      </Head>
+
       <Breadcrumbs {...breadcrumbsConfig} />
 
       <div className="mx-auto lg:w-2/4">
@@ -93,7 +33,6 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
           encType="multipart/form-data"
           onSubmit={(e) => {
             e.preventDefault();
-            handleSubmit();
           }}>
           <div className="overflow-hidden shadow sm:rounded-md">
             <div className="bg-white px-4 py-5 sm:p-6">
@@ -110,10 +49,8 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
                     id="product-name"
                     autoComplete="given-name"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    value={formValue.name}
-                    onChange={(e) =>
-                      setFormValue({ ...formValue, name: e.target.value })
-                    }
+                    value={detail.name}
+                    readOnly
                     required
                   />
                 </div>
@@ -129,10 +66,8 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
                     id="sku"
                     autoComplete="given-name"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    value={formValue.sku}
-                    onChange={(e) =>
-                      setFormValue({ ...formValue, sku: e.target.value })
-                    }
+                    value={detail.sku}
+                    readOnly
                     required
                   />
                 </div>
@@ -143,27 +78,16 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
                     className="block text-sm font-medium text-gray-700">
                     Category
                   </label>
-                  <select
-                    id="category"
+                  <input
+                    type="text"
                     name="category"
-                    autoComplete="category-name"
+                    id="category"
+                    autoComplete="given-name"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    value={detail.categoryName}
+                    readOnly
                     required
-                    value={formValue.CategoryId}
-                    onChange={(e) => {
-                      setFormValue({
-                        ...formValue,
-                        CategoryId: e.target.value,
-                        categoryName:
-                          e.target.options[e.target.selectedIndex].innerHTML,
-                      });
-                    }}
-                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm">
-                    {categories.map((category, index) => (
-                      <option key={index} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 <div className="col-span-6">
@@ -179,13 +103,8 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     rows={10}
                     required
-                    value={formValue.description}
-                    onChange={(e) =>
-                      setFormValue({
-                        ...formValue,
-                        description: e.target.value,
-                      })
-                    }
+                    value={detail.description}
+                    readOnly
                   />
                 </div>
                 <div className="col-span-6">
@@ -202,10 +121,8 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
                     autoComplete="given-name"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     required
-                    value={formValue.harga}
-                    onChange={(e) =>
-                      setFormValue({ ...formValue, harga: +e.target.value })
-                    }
+                    value={detail.harga}
+                    readOnly
                   />
                 </div>
 
@@ -223,10 +140,8 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
                     autoComplete="address-level2"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     required
-                    value={formValue.weight}
-                    onChange={(e) =>
-                      setFormValue({ ...formValue, weight: +e.target.value })
-                    }
+                    value={detail.weight}
+                    readOnly
                   />
                 </div>
 
@@ -244,10 +159,8 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
                     autoComplete="address-level1"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     required
-                    value={formValue.width}
-                    onChange={(e) =>
-                      setFormValue({ ...formValue, width: +e.target.value })
-                    }
+                    value={detail.width}
+                    readOnly
                   />
                 </div>
 
@@ -265,10 +178,8 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
                     autoComplete="length"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     required
-                    value={formValue.length}
-                    onChange={(e) =>
-                      setFormValue({ ...formValue, length: +e.target.value })
-                    }
+                    value={detail.length}
+                    readOnly
                   />
                 </div>
 
@@ -286,10 +197,8 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
                     autoComplete="height"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     required
-                    value={formValue.height}
-                    onChange={(e) =>
-                      setFormValue({ ...formValue, height: +e.target.value })
-                    }
+                    value={detail.height}
+                    readOnly
                   />
                 </div>
 
@@ -299,29 +208,9 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
                     className="block text-sm font-medium text-gray-700">
                     Image
                   </label>
-                  {previewImage !== "" && (
-                    <img src={previewImage} width={200} height={200} />
-                  )}
-                  <input
-                    type="file"
-                    accept=".jpg, .jpeg, .png"
-                    name="image"
-                    id="image"
-                    className="mt-1 block w-full  border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    required
-                    onChange={(e) =>
-                      setFormValue({ ...formValue, image: e.target.files })
-                    }
-                  />
+                  <img src={detail.image} width={200} height={200} />
                 </div>
               </div>
-            </div>
-            <div className="bg-gray-50 px-4 py-3 text-right sm:px-6">
-              <button
-                type="submit"
-                className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                Save
-              </button>
             </div>
           </div>
         </form>
@@ -330,23 +219,31 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
   );
 };
 
-export const getStaticProps: GetStaticProps = async () => {
-  let categories: ICategoryList;
+export const getServerSideProps: GetServerSideProps = async ({ params }) => {
+  let detail: IProduct;
+  let fetchingDetail;
 
-  const fetchingCategories = await getCategories();
-
-  if (fetchingCategories.status !== 200) {
-    categories = [];
+  try {
+    fetchingDetail = await getDetailProduct(String(params?.id));
+  } catch (error) {
+    return {
+      notFound: true,
+    };
   }
 
-  categories = fetchingCategories.data;
+  if (fetchingDetail.status !== 200) {
+    return {
+      notFound: true,
+    };
+  }
+
+  detail = fetchingDetail.data;
 
   return {
     props: {
-      categories,
+      detail,
     },
-    revalidate: 60,
   };
 };
 
-export default ProductForm;
+export default ProductFormDetail;
