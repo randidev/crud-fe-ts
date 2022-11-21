@@ -1,3 +1,4 @@
+import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { CgTrashEmpty } from "react-icons/cg";
@@ -12,16 +13,18 @@ import { IProductList, IProduct } from "../type/product";
 import { currencyFormat } from "../utils/helpers";
 import { useAppDispatch, useAppSelector } from "../hooks/redux";
 import { replace } from "../features/products";
+import { confirmationConfig } from "../config/config/swal";
 
 import Table from "../components/table";
 import Card from "../components/card";
 import Breadcrumbs from "../components/breadcrumbs";
 import Loading from "../components/loading";
-import { confirmationConfig } from "../config/config/swal";
 import Button from "../components/button";
 
 export default function Home() {
   const dispatch = useAppDispatch();
+  const router = useRouter();
+
   const productState = useAppSelector((state) => state.products);
 
   const [loading, setLoading] = useState(true);
@@ -160,7 +163,7 @@ export default function Home() {
             }
           />
           <Button
-            onClick={() => fetching(true)}
+            onClick={() => router.push("/product/add")}
             Content={
               <div className="flex items-center gap-2">
                 <HiPlus size={20} />
