@@ -185,19 +185,18 @@ export default function Home() {
         </div>
       </div>
 
-      {loading ? (
-        <Card>
+      <Card>
+        {loading ? (
           <Loading className="mx-auto" />
-        </Card>
-      ) : (
-        <>
-          <Card>
-            <Table<IProduct> data={products} columns={columns} />
-          </Card>
-          <div className="mt-2 text-sm font-light  text-gray-600">
-            Last updated {moment(cachedProduct.lastUpdated).fromNow()}
-          </div>
-        </>
+        ) : (
+          <Table<IProduct> data={products} columns={columns} />
+        )}
+      </Card>
+
+      {!loading && (
+        <div className="mt-2 text-sm font-light  text-gray-600">
+          Last updated {moment(cachedProduct.lastUpdated).fromNow()}
+        </div>
       )}
     </div>
   );

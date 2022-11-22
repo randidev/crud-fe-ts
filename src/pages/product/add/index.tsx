@@ -26,8 +26,8 @@ export const ProductForm: NextPage<{ categories: ICategoryList }> = ({
   const [formValue, setFormValue] = useState<IFormValue>({
     name: "",
     sku: "",
-    CategoryId: 0,
-    categoryName: "",
+    CategoryId: 1,
+    categoryName: "Cemilan",
     description: "",
     weight: 0,
     width: 0,
